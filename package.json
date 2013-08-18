@@ -1,0 +1,37 @@
+{
+  "name": "coffeenode-tex",
+  "version": "0.0.2",
+  "description": "TeX creation library.",
+  "author": {
+    "name": "loveencounterflow",
+    "email": "paragate@gmx.net"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loveencounterflow/coffeenode-tex.git"
+  },
+  "dependencies": {
+    "coffee-script": "~1.6.2",
+    "coffeenode-types": "~0.1.0"
+  },
+  "larq": {
+    "extensions": {
+      ".coffee": "coffee-script"
+    },
+    "compile-statements": {},
+    "%cache": {
+      "routes": {
+        "lib/main.js": 1
+      }
+    }
+  },
+  "main": "./lib/main",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "bugs": {
+    "url": "https://github.com/loveencounterflow/coffeenode-tex/issues"
+  },
+  "readme": "ERROR: No README data found!",
+  "_id": "coffeenode-tex@0.0.2"
+}
