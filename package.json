@@ -10,6 +10,9 @@
     "type": "git",
     "url": "https://github.com/loveencounterflow/coffeenode-tex.git"
   },
+  "devDependencies": {
+    "coffeenode-trm": "~0.1.6"
+  },
   "dependencies": {
     "coffee-script": "~1.6.2",
     "coffeenode-types": "~0.1.0"
