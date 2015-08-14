@@ -14,8 +14,10 @@
     "coffeenode-trm": "~0.1.6"
   },
   "dependencies": {
-    "coffee-script": "~1.6.2",
-    "coffeenode-types": "~0.1.0"
+    "coffee-script": "^1.6.3",
+    "coffeenode-text": "^0.1.9",
+    "coffeenode-trm": "^0.1.22",
+    "coffeenode-types": "^0.1.1"
   },
   "larq": {
     "extensions": {

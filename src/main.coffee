@@ -3,6 +3,18 @@
 
 ############################################################################################################
 TYPES                     = require 'coffeenode-types'
+TEXT                      = require 'coffeenode-text'
+TRM                       = require 'coffeenode-trm'
+rpr                       = TRM.rpr.bind TRM
+badge                     = 'TEX'
+log                       = TRM.get_logger 'plain',     badge
+info                      = TRM.get_logger 'info',      badge
+whisper                   = TRM.get_logger 'whisper',   badge
+alert                     = TRM.get_logger 'alert',     badge
+debug                     = TRM.get_logger 'debug',     badge
+warn                      = TRM.get_logger 'warn',      badge
+help                      = TRM.get_logger 'help',      badge
+echo                      = TRM.echo.bind TRM
 
 
 #===========================================================================================================
@@ -63,7 +75,7 @@ TYPES                     = require 'coffeenode-types'
   NUMBER.validate_is_nonnegative_integer arity
   #.........................................................................................................
   R =
-    '~isa':       'TEX/multi-command'
+    '~isa':       'TEX/multicommand'
     'name':       name
     'arity':      arity
     'options':    null
@@ -78,6 +90,7 @@ TYPES                     = require 'coffeenode-types'
   R =
     '~isa':       'TEX/environment'
     'name':       name
+    'options':    null
     'contents':   get_contents contents
   #.........................................................................................................
   return R
@@ -87,10 +100,13 @@ get_contents = ( contents ) ->
   return if TYPES.isa_list contents then contents else ( if contents? then [ contents ] else [] )
 
 #-----------------------------------------------------------------------------------------------------------
-@make_loner_group   = ( name ) -> return ( P... ) => return @new_group ( @new_loner name ), P...
-@make_environment   = ( name ) -> return ( P... ) => return @new_environment        name,   P...
-@make_loner         = ( name ) -> return ( P... ) => return @new_loner              name,   P...
-@make_command       = ( name ) -> return ( P... ) => return @new_command            name,   P...
+@make_loner_group   = ( name        ) -> return ( P... ) => return @new_group ( @new_loner name ),        P...
+@make_environment   = ( name        ) -> return ( P... ) => return @new_environment        name,          P...
+@make_loner         = ( name        ) -> return ( P... ) => return @new_loner              name,          P...
+@make_command       = ( name        ) -> return ( P... ) => return @new_command            name,          P...
+@make_multicommand  = ( name, arity ) -> return ( P... ) => return @new_multicommand       name,   arity, P...
+#...........................................................................................................
+@raw                = ( contents ) -> return @new_raw_container contents
 
 #-----------------------------------------------------------------------------------------------------------
 @make_multicommand = ( name, arity ) ->
@@ -103,17 +119,17 @@ get_contents = ( contents ) ->
 @validate_command_name = ( x ) ->
   TYPES.validate_isa_text x
   unless ( x.match /^[a-zA-Z]+\*?$/ )?
-    bye "command names must only contain upper- and lowercase English letters; got #{rpr x}"
+    throw new Error "command names must only contain upper- and lowercase English letters; got #{rpr x}"
 
 #-----------------------------------------------------------------------------------------------------------
 @validate_option_name = ( x ) ->
   TEXT.validate_is_nonempty_text x
   if ( x.match /\\|\{|\}|&|\$|\#|%|_|\^|~/ )?
-    bye "option names must not contain special characters; got #{rpr x}"
+    throw new Error "option names must not contain special characters; got #{rpr x}"
 
 #-----------------------------------------------------------------------------------------------------------
 @validate_isa_command = ( x ) ->
-  bye "expected a TEX/command, got a #{type}" unless ( type = TYPES.type_of x ) is 'TEX/command'
+  throw new Error "expected a TEX/command, got a #{type}" unless ( type = TYPES.type_of x ) is 'TEX/command'
 
 
 #===========================================================================================================
@@ -154,7 +170,7 @@ get_contents = ( contents ) ->
 
 #-----------------------------------------------------------------------------------------------------------
 @set = ( me, name, value = null ) ->
-  @validate_isa_command me
+  # @validate_isa_command me
   options = me[ 'options' ]?= {}
   @_set options, name, value
   return me
@@ -216,9 +232,9 @@ get_contents = ( contents ) ->
     when 'TEX/loner'          then @_rpr_of_loner         x
     when 'TEX/group'          then @_rpr_of_group         x
     when 'TEX/command'        then @_rpr_of_command       x
-    when 'TEX/multi-command'  then @_rpr_of_multicommand  x
+    when 'TEX/multicommand'   then @_rpr_of_multicommand  x
     when 'TEX/environment'    then @_rpr_of_environment   x
-    else                           rpr                    x
+    else                           @_escape TRM.rpr       x
 
 #-----------------------------------------------------------------------------------------------------------
 @_rpr_of_container = ( me ) ->
@@ -258,14 +274,19 @@ get_contents = ( contents ) ->
   content_count = me[ 'contents' ].length
   arity         = me[ 'arity' ]
   if content_count != arity
-    bye "command `\\#{me[ 'name' ]}` expects #{arity} arguments, got #{content_count}"
+    throw new Error "command `\\#{me[ 'name' ]}` expects #{arity} arguments, got #{content_count}"
   R.push '{' + ( @rpr content ) + '}' for content in me[ 'contents' ]
   #.........................................................................................................
   return R.join ''
 
 #-----------------------------------------------------------------------------------------------------------
 @_rpr_of_environment = ( me ) ->
-  R = [ '\\begin{', me[ 'name' ], '}\n', ]
+  R = []
+  R.push '\\begin'
+  R.push @_rpr_of_options me
+  R.push '{'
+  R.push me[ 'name' ]
+  R.push '}\n'
   R.push @rpr content for content in me[ 'contents' ]
   R.push '\n\\end{'
   R.push me[ 'name' ]
@@ -274,6 +295,7 @@ get_contents = ( contents ) ->
 
 #-----------------------------------------------------------------------------------------------------------
 @_rpr_of_options = ( me ) ->
+  R = []
   #.........................................................................................................
   if ( options = me[ 'options' ] )?
     R.push '['
@@ -288,7 +310,7 @@ get_contents = ( contents ) ->
 
 
 #===========================================================================================================
-# UNRESOLVED DEPENDENCIES
+# UNRESOLVED DEPENDENCIES: NUMBER
 #-----------------------------------------------------------------------------------------------------------
 NUMBER = {}
 
@@ -304,6 +326,36 @@ NUMBER.is_nonnegative_integer = ( x ) ->
 NUMBER.validate_is_nonnegative_integer = ( x ) ->
   return null if @is_nonnegative_integer x
   throw new Error "expected a non-negative integer, got #{nrpr x}"
+
+
+#===========================================================================================================
+# UNRESOLVED DEPENDENCIES: LIST
+#-----------------------------------------------------------------------------------------------------------
+LIST = {}
+
+#-----------------------------------------------------------------------------------------------------------
+LIST.add = ( me, you ) ->
+  me.splice me.length, 0, you...
+  return me
+
+#-----------------------------------------------------------------------------------------------------------
+LIST.intersperse = ( me, x ) ->
+  """Given a list and a value, stick the value in between each element pair in the list. This method is
+  analogous to "a ``LIST/join`` that does not reduce its result to a text"."""
+  if me.length > 1
+    for idx in [ me.length - 1 .. 1 ] by -1
+      @insert me, x, idx
+  #.........................................................................................................
+  return me
+
+#-----------------------------------------------------------------------------------------------------------
+LIST.insert = ( me, value, idx ) ->
+  if idx?
+    me.splice idx, 0, value
+  else
+    me.unshift value
+  return me
+
 
 
 # module.exports = bundle @
